@@ -1,0 +1,16 @@
+# PlatformIO
+.pio/
+build/
+# VSCode
+.vscode/
+# Arquivos temporários
+*.pyc
+*.swp
+*.swo
+*.bak
+*.tmp
+# Sistema
+.DS_Store
+Thumbs.db
+# Configurações
+sdkconfig*
