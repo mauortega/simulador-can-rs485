@@ -62,6 +62,14 @@ static const char *modeName(ACAN2515Settings::RequestedMode m) {
   }
 }
 
+// ---- Helper: (re)inicializa um barramento com sua configuração fixa ----
+// Retorna 0 em sucesso ou o código de erro de ACAN2515::begin().
+static uint16_t beginBus(uint8_t idx) {
+  ACAN2515Settings settings(CAN_QUARTZ_HZ, kBusConfig[idx].bitrate);
+  settings.mRequestedMode = kBusConfig[idx].mode;
+  return canBus[idx].begin(settings, kISRs[idx]);
+}
+
 // ---- Helper: imprime frame CAN com timestamp ----
 static void printCANMsg(const char *tag, const CANMessage &msg) {
   char ts[12];
@@ -98,6 +106,9 @@ static void drainCAN(uint8_t idx, uint32_t nowMs) {
   }
 
   // ---- Bus-off recovery ----
+  // Reinicializa o controlador (end + begin) para limpar TXBO e contadores
+  // de erro. Em modo normal o MCP2515 também recupera sozinho após 128x11
+  // bits recessivos, mas o reinit garante estado limpo e determinístico.
   if (st.busOff) {
     if (nowMs - st.lastBusOffAttemptMs >= CAN_BUSOFF_RETRY_MS) {
       st.lastBusOffAttemptMs = nowMs;
@@ -108,8 +119,20 @@ static void drainCAN(uint8_t idx, uint32_t nowMs) {
             tag);
         fatalStop("Bus-off irrecuperável.");
       }
-      serialLogf("[%s] Bus-off ainda ativo — checagem %u/%u\n", tag,
-                 st.busOffTries, CAN_BUSOFF_MAX_TRIES);
+
+      serialLogf("[%s] Bus-off recovery — tentativa %u/%u (reinit MCP2515)\n",
+                 tag, st.busOffTries, CAN_BUSOFF_MAX_TRIES);
+
+      can.end();
+      const uint16_t err = beginBus(idx);
+      if (err != 0) {
+        serialLogf("[%s] Reinit falhou (ERR=0x%X) — nova tentativa em %lu ms\n",
+                   tag, err, (unsigned long)CAN_BUSOFF_RETRY_MS);
+      } else {
+        // Força releitura do EFLG na próxima janela de poll para confirmar
+        // a saída do bus-off e contabilizar o recovery.
+        st.lastErrorPollMs = nowMs - CAN_ERROR_POLL_MS;
+      }
     }
     return; // Não processar RX enquanto em bus-off
   }
@@ -176,15 +199,13 @@ void initAllCAN() {
   bool allOk = true;
   for (uint8_t i = 0; i < CAN_BUS_COUNT; i++) {
     const char *name = kBusConfig[i].name;
-    ACAN2515Settings settings(CAN_QUARTZ_HZ, kBusConfig[i].bitrate);
-    settings.mRequestedMode = kBusConfig[i].mode;
 
     serialLogf("\n[%s] ===== Inicializando MCP2515 =====\n", name);
     serialLogf("[%s] Clock : %lu Hz | Bitrate : %lu kbps | Modo: %s\n", name,
                CAN_QUARTZ_HZ, kBusConfig[i].bitrate / 1000UL,
                modeName(kBusConfig[i].mode));
 
-    uint16_t err = canBus[i].begin(settings, kISRs[i]);
+    uint16_t err = beginBus(i);
     if (err == 0) {
       serialLogf("[%s] OK\n", name);
     } else {

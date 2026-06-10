@@ -10,23 +10,35 @@ SemaphoreHandle_t gSerialMutex = nullptr;
 
 // ---- Logging ----
 
+// Tenta adquirir o mutex de log. Retorna true se a escrita pode prosseguir.
+// Antes do mutex existir (boot inicial) a escrita é permitida sem lock.
+// Se o mutex existe mas não foi adquirido no timeout, a escrita é abortada
+// para não intercalar mensagens de tasks diferentes na Serial.
+static bool logTryLock(bool *outHasMutex) {
+  if (gSerialMutex == nullptr) {
+    *outHasMutex = false;
+    return true;
+  }
+  *outHasMutex = true;
+  return xSemaphoreTake(gSerialMutex, pdMS_TO_TICKS(LOG_MUTEX_TIMEOUT_MS)) ==
+         pdTRUE;
+}
+
 void serialLogf(const char *fmt, ...) {
   // Nunca chamar de ISR
   if (xPortInIsrContext())
     return;
 
-  bool locked = false;
-  if (gSerialMutex != nullptr) {
-    locked = (xSemaphoreTake(gSerialMutex,
-                             pdMS_TO_TICKS(LOG_MUTEX_TIMEOUT_MS)) == pdTRUE);
-  }
+  bool hasMutex = false;
+  if (!logTryLock(&hasMutex))
+    return;
 
   va_list args;
   va_start(args, fmt);
   Serial.vprintf(fmt, args);
   va_end(args);
 
-  if (locked)
+  if (hasMutex)
     xSemaphoreGive(gSerialMutex);
 }
 
@@ -34,15 +46,13 @@ void serialLogln(const char *msg) {
   if (xPortInIsrContext())
     return;
 
-  bool locked = false;
-  if (gSerialMutex != nullptr) {
-    locked = (xSemaphoreTake(gSerialMutex,
-                             pdMS_TO_TICKS(LOG_MUTEX_TIMEOUT_MS)) == pdTRUE);
-  }
+  bool hasMutex = false;
+  if (!logTryLock(&hasMutex))
+    return;
 
   Serial.println(msg);
 
-  if (locked)
+  if (hasMutex)
     xSemaphoreGive(gSerialMutex);
 }
 
