@@ -1,0 +1,30 @@
+---
+description: Mantém memória persistente do projeto via CONTEXTO_DEV.md
+alwaysApply: true
+---
+
+# Memória de contexto do projeto
+
+Existe um documento vivo em `CONTEXTO_DEV.md` (raiz do projeto) que registra o estado,
+as decisões e o histórico importante do trabalho.
+
+## No início de cada tarefa
+
+- Leia `CONTEXTO_DEV.md` antes de agir, para recuperar o contexto acumulado.
+
+## Ao longo do trabalho
+
+Atualize `CONTEXTO_DEV.md` quando algo relevante acontecer, sem precisar ser solicitado:
+
+- Decisões técnicas e seus motivos.
+- Trabalho concluído (arquivos/funções alteradas e o porquê).
+- Mudanças de Git relevantes (branches, commits, merges).
+- Pendências em aberto e itens adiados.
+- Preferências do usuário e notas de ambiente.
+
+Regras de atualização:
+
+- Atualize o campo "Última atualização" com a data atual.
+- Edite as seções existentes em vez de duplicar informação; mantenha conciso.
+- Não registre segredos (tokens, senhas, `.env`).
+- Não commite o arquivo automaticamente; só faça commit quando o usuário pedir.
