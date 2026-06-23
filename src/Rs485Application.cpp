@@ -19,9 +19,13 @@ void Rs485Application::loop(uint32_t nowMs) {
     return;
   }
 
+  const size_t packetSize = sizeof(kValidatorTestPacket);
+  if (Serial2.availableForWrite() < packetSize) {
+    return;
+  }
+
   mLastTxMs = nowMs;
-  Serial2.write(kValidatorTestPacket, sizeof(kValidatorTestPacket));
-  Serial2.flush();
+  Serial2.write(kValidatorTestPacket, packetSize);
   Serial.printf("[RS485] TX %u bytes\n",
-                (unsigned int)sizeof(kValidatorTestPacket));
+                (unsigned int)packetSize);
 }

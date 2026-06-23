@@ -106,7 +106,7 @@ void J1939Simulator::sendDue(CanFrameSink &sink, uint8_t busIndex,
   if (shouldSend(VehicleElectricalPower, nowMs)) {
     fillFrame(d, 0xFF);
     putLe16(d, 2, le16Raw(roundf(mState.altVoltage) / 0.05f));
-    putLe16(d, 4, le16Raw(roundf(mState.battVoltage) / 0.05f));
+    putLe16(d, 4, le16Raw(roundf(mState.altVoltage) / 0.05f));
     sendFrame(sink, busIndex, 0x18FEF700UL, d);
     markSent(VehicleElectricalPower, nowMs);
   }

@@ -1,6 +1,7 @@
 # PlatformIO
 .pio/
 build/
+compile_commands.json
 # VSCode
 .vscode/
 # Arquivos temporários

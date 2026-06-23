@@ -1,3 +1,5 @@
+#include <Arduino.h>
+
 #include "CanApplication.h"
 #include "Rs485Application.h"
 
