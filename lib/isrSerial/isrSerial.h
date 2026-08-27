@@ -1,53 +1,43 @@
 #ifndef ISR_SERIAL_H
 #define ISR_SERIAL_H
 
-// Serial por interrupção em D4 (RX) / D5 (TX) — substituto do SoftwareSerial.
+// Interrupt-driven serial port for classic AVR devices with PORTD, PCINT2,
+// and Timer2. It is designed as a replacement for SoftwareSerial when the
+// application must keep interrupts enabled during transmission.
 //
-// Motivo: o SoftwareSerial transmite com interrupções desligadas (~1 ms por
-// byte a 9600). Enquanto isso o USART0 (RS485 do validador) não recebe, e um
-// frame único como o STD 0x30 de seleção de linha pode se perder.
+// Default pins are RX=D4 and TX=D5. Override them at compile time with:
+//   -DISR_SERIAL_RX_PIN=<0..7>
+//   -DISR_SERIAL_TX_PIN=<0..7>
+// Both pins must belong to PORTD (D0 through D7 on an Arduino Nano).
 //
-// Este driver usa o Timer2 (CTC, 3 ticks por bit) para TX e PCINT2 para
-// detectar o start bit no RX. As ISRs duram poucos µs; o RX do RS485
-// continua sendo atendido durante a transmissão para a Raspberry.
-//
-// Restrições:
-// - NÃO pode ser linkado junto com o SoftwareSerial: os dois definem
-//   ISR(PCINT2_vect). Ao adotar esta lib, remover o SoftwareSerial do host.
-// - Pinos fixos em PORTD (D0–D7), padrão D4/D5 (mapa NX7000). Override em
-//   tempo de compilação: -DISR_SERIAL_RX_PIN / -DISR_SERIAL_TX_PIN.
-// - Ocupa o Timer2 (sem tone() / PWM em D3 e D11 — este projeto não usa).
-// - Baud testado: 9600 (alvo da Raspberry). 19200 é o limite prático.
-// - write() bloqueia se o buffer de TX encher, mas com interrupções ATIVAS:
-//   o ring do USART0 segue enchendo. Use availableForWrite() para fatiar
-//   prints longos sem bloquear.
+// This library owns Timer2 and PCINT2. Do not use it with SoftwareSerial,
+// tone(), or PWM on D3/D11. Only one isrSerial instance is available.
 
 #include <Arduino.h>
 
-class IsrSerial : public Stream
-{
+class IsrSerial : public Stream {
 public:
   void begin(unsigned long baud);
   void end();
 
-  virtual int available();
-  virtual int read();
-  virtual int peek();
-  virtual size_t write(uint8_t data);
-  virtual void flush();
+  int available() override;
+  int read() override;
+  int peek() override;
+  size_t write(uint8_t data) override;
+  void flush() override;
   using Print::write;
 
-  // Espaço livre no buffer de TX (para enviar sem bloquear).
-  virtual int availableForWrite();
+  // Free bytes in the TX buffer. Use this to avoid a blocking write.
+  int availableForWrite() override;
 
-  // true se algum byte de RX foi descartado desde a última chamada.
+  // Returns and clears the RX overflow flag.
   bool overflow();
 
-  // true enquanto há bytes saindo pelo TX.
+  // True while one or more bytes are being transmitted.
   bool txBusy();
 };
 
-// Instância única: as ISRs (Timer2 / PCINT2) são globais.
+// Timer2 and PCINT2 interrupt handlers are global, so only one instance exists.
 extern IsrSerial isrSerial;
 
 #endif

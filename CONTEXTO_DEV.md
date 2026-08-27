@@ -51,6 +51,10 @@ de 330 ohms e ter o catodo ligado ao GND.
 ## RS485
 
 - Biblioteca `isrSerial` a 19200 baud, usando Timer2 e PCINT2.
+- A biblioteca esta empacotada em `lib/isrSerial` com `library.json`, README e
+  versao `1.0.0` para descoberta automatica pelo PlatformIO.
+- Ela valida em compilacao o alvo AVR, a disponibilidade de PORTD/PCINT2/Timer2
+  e a configuracao de pinos RX/TX entre D0 e D7.
 - `SoftwareSerial` nao pode ser usado junto com `isrSerial` porque ambas usam
   a interrupcao PCINT2.
 - O mapa padrao da biblioteca foi sobrescrito no `platformio.ini` para manter

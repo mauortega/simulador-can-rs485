@@ -1,6 +1,17 @@
 #include "isrSerial.h"
 
+#ifndef __AVR__
+#error "isrSerial requires an AVR target."
+#endif
+
 #include <avr/interrupt.h>
+
+#if !defined(PORTD) || !defined(PIND) || !defined(PCICR) || \
+    !defined(PCMSK2) || !defined(PCIFR) || !defined(PCIE2) || \
+    !defined(PCIF2) || !defined(TCCR2A) || !defined(TCCR2B) || \
+    !defined(OCR2A) || !defined(TIMSK2)
+#error "isrSerial requires PORTD, PCINT2, and Timer2 support."
+#endif
 
 // Pinos em PORTD (D0–D7). No 328P o bit do PCINT2x e o bit do PORTD
 // coincidem com o número do pino digital.
@@ -9,6 +20,18 @@
 #endif
 #ifndef ISR_SERIAL_TX_PIN
 #define ISR_SERIAL_TX_PIN 5 // PD5
+#endif
+
+#if ISR_SERIAL_RX_PIN < 0 || ISR_SERIAL_RX_PIN > 7
+#error "ISR_SERIAL_RX_PIN must be a PORTD pin from D0 to D7."
+#endif
+
+#if ISR_SERIAL_TX_PIN < 0 || ISR_SERIAL_TX_PIN > 7
+#error "ISR_SERIAL_TX_PIN must be a PORTD pin from D0 to D7."
+#endif
+
+#if ISR_SERIAL_RX_PIN == ISR_SERIAL_TX_PIN
+#error "ISR_SERIAL_RX_PIN and ISR_SERIAL_TX_PIN must be different."
 #endif
 
 #define ISR_RX_MASK _BV(ISR_SERIAL_RX_PIN)

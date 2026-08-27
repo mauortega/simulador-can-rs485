@@ -1,0 +1,11 @@
+{
+  "name": "isrSerial",
+  "version": "1.0.0",
+  "description": "Interrupt-driven software serial for classic AVR devices using Timer2 and PCINT2.",
+  "keywords": ["avr", "serial", "software-serial", "interrupt", "rs485"],
+  "frameworks": ["arduino"],
+  "platforms": ["atmelavr"],
+  "build": {
+    "srcDir": "."
+  }
+}
