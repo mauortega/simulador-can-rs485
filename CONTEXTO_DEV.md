@@ -9,7 +9,7 @@ Ultima atualizacao: 2026-08-27
 - O firmware ESP32 original permanece preservado nas outras branches.
 - Projeto PlatformIO para Arduino Nano/ATmega328P, framework Arduino.
 - Ambiente: `nanoatmega328`.
-- Ultimo commit funcional antes desta atualizacao: `50d68c5`.
+- Ultimo commit funcional antes desta atualizacao: `af58032`.
 
 ## Hardware atual
 
@@ -50,7 +50,11 @@ de 330 ohms e ter o catodo ligado ao GND.
 
 ## RS485
 
-- SoftwareSerial a 19200 baud.
+- Biblioteca `isrSerial` a 19200 baud, usando Timer2 e PCINT2.
+- `SoftwareSerial` nao pode ser usado junto com `isrSerial` porque ambas usam
+  a interrupcao PCINT2.
+- O mapa padrao da biblioteca foi sobrescrito no `platformio.ini` para manter
+  TX em D4 e RX em D5.
 - Pacote fixo de 29 bytes transmitido a cada 2 segundos.
 - Antes do envio, D6 vai para HIGH para habilitar o transmissor.
 - Ao terminar o envio, D6 volta para LOW para habilitar recepcao.
@@ -67,8 +71,8 @@ pio run
 
 Uso atual:
 
-- Flash: 19.738 de 30.720 bytes (64,3%).
-- RAM: 1.573 de 2.048 bytes (76,8%).
+- Flash: 19.328 de 30.720 bytes (62,9%).
+- RAM: 1.597 de 2.048 bytes (78,0%).
 
 A RAM esta relativamente alta. Evitar buffers grandes e manter textos de log
 em flash usando `F()`.
@@ -95,6 +99,9 @@ em flash usando `F()`.
 ## Estado validado
 
 - Compilacao concluida com sucesso.
-- Firmware com controle RS485 em D6 gravado com sucesso na COM11 a 115200 baud.
+- Compilacao validada com `isrSerial`; a dependencia `SoftwareSerial` nao e
+  mais usada pelo firmware.
+- O firmware com controle RS485 em D6 havia sido gravado com sucesso na COM11
+  a 115200 baud antes desta troca de biblioteca.
 - Branch publicada no GitHub.
 - README atualizado com pinagem, LEDs, CAN, RS485 e gravacao.

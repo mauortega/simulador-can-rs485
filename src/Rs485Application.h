@@ -16,4 +16,5 @@ public:
 
 private:
   uint32_t mLastTxMs = 0;
+  bool mTransmitting = false;
 };
