@@ -26,7 +26,7 @@ permanece preservado nas demais branches.
 | SPI MOSI | D11 | SPI de hardware |
 | SPI MISO | D12 | SPI de hardware |
 | SPI SCK | D13 | SPI de hardware |
-| LED de estado | A0 | Pisca durante a execucao |
+| LED de atividade RS485 | A0 | Pulso a cada pacote transmitido |
 | LED CAN 250 | A1 | Aceso no modo 250 kbit/s |
 | LED CAN 500 | A2 | Aceso no modo 500 kbit/s |
 
@@ -34,13 +34,13 @@ permanece preservado nas demais branches.
 
 | Indicacao | Ligacao no anodo (+) | Ligacao no catodo (-) |
 |---|---|---|
-| Estado do simulador | A0 -> resistor de 330 ohms -> anodo | Catodo -> GND |
+| Atividade RS485 | A0 -> resistor de 330 ohms -> anodo | Catodo -> GND |
 | CAN 250 kbit/s | A1 -> resistor de 330 ohms -> anodo | Catodo -> GND |
 | CAN 500 kbit/s | A2 -> resistor de 330 ohms -> anodo | Catodo -> GND |
 
-Os LEDs sao ativos em nivel alto. O LED em A0 pisca durante a execucao. Entre
-os LEDs de velocidade, apenas A1 ou A2 permanece aceso: A1 indica 250 kbit/s e
-A2 indica 500 kbit/s.
+Os LEDs sao ativos em nivel alto. O LED em A0 acende por aproximadamente 120 ms
+somente quando o pacote RS485 e transmitido. Entre os LEDs de velocidade, apenas
+A1 ou A2 permanece aceso: A1 indica 250 kbit/s e A2 indica 500 kbit/s.
 
 O barramento CAN deve ter terminacao adequada de 120 ohms nas duas extremidades.
 CAN-H, CAN-L e GND devem ser compartilhados com o equipamento conectado.
@@ -66,7 +66,8 @@ transmite quadros CAN em modo one-shot; ele nao opera em listen-only.
 
 O RS485 transmite em D4 a 19200 baud, a cada 2 segundos. O firmware pressupoe
 um transceiver com controle automatico de direcao. D5 fica reservado como RX,
-mas pode permanecer desconectado quando apenas a transmissao for usada.
+mas pode permanecer desconectado quando apenas a transmissao for usada. A cada
+pacote de 29 bytes transmitido, o LED em A0 acende por aproximadamente 120 ms.
 
 ## Compilacao
 

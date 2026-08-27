@@ -15,9 +15,9 @@ static constexpr uint32_t StatsPeriodMs = 2000UL;
 static constexpr uint32_t LoopDelayMs = 1UL;
 static constexpr bool DebugTxFrames = false;
 static constexpr uint32_t DebugTxPeriodMs = 250UL;
-static constexpr uint8_t StatusLedPin = A0;
-static constexpr uint32_t StatusLedPeriodMs = 500UL;
-static constexpr bool StatusLedActiveLow = false;
+static constexpr uint8_t Rs485ActivityLedPin = A0;
+static constexpr uint32_t Rs485ActivityLedPulseMs = 120UL;
+static constexpr bool Rs485ActivityLedActiveLow = false;
 static constexpr uint8_t Can250LedPin = A1;
 static constexpr uint8_t Can500LedPin = A2;
 

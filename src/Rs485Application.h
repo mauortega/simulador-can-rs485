@@ -5,7 +5,7 @@
 class Rs485Application {
 public:
   void begin();
-  void loop(uint32_t nowMs);
+  bool loop(uint32_t nowMs);
 
 public:
   static constexpr uint8_t RxPin = 5;

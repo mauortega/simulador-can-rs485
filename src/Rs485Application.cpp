@@ -17,14 +17,16 @@ void Rs485Application::begin() {
   Serial.print(TxPeriodMs); Serial.println(F("ms"));
 }
 
-void Rs485Application::loop(uint32_t nowMs) {
+bool Rs485Application::loop(uint32_t nowMs) {
   if ((nowMs - mLastTxMs) < TxPeriodMs) {
-    return;
+    return false;
   }
 
   const size_t packetSize = sizeof(kValidatorTestPacket);
   mLastTxMs = nowMs;
-  rs485Serial.write(kValidatorTestPacket, packetSize);
+  const size_t bytesWritten =
+      rs485Serial.write(kValidatorTestPacket, packetSize);
   Serial.print(F("[RS485] TX ")); Serial.print(packetSize);
   Serial.println(F(" bytes"));
+  return bytesWritten == packetSize;
 }

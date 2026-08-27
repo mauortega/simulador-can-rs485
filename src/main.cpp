@@ -7,30 +7,33 @@
 
 static CanApplication canApp;
 static Rs485Application rs485App;
-static uint32_t lastStatusLedToggleMs = 0;
-static bool statusLedOn = false;
+static uint32_t rs485LedOnMs = 0;
+static bool rs485LedOn = false;
 
-static void setStatusLed(bool on) {
-  statusLedOn = on;
-  const bool level = AppConfig::StatusLedActiveLow ? !on : on;
-  digitalWrite(AppConfig::StatusLedPin, level ? HIGH : LOW);
+static void setRs485ActivityLed(bool on) {
+  rs485LedOn = on;
+  const bool level = AppConfig::Rs485ActivityLedActiveLow ? !on : on;
+  digitalWrite(AppConfig::Rs485ActivityLedPin, level ? HIGH : LOW);
 }
 
-static void updateStatusLed(uint32_t nowMs) {
-  if ((nowMs - lastStatusLedToggleMs) < AppConfig::StatusLedPeriodMs) {
-    return;
+static void updateRs485ActivityLed(uint32_t nowMs, bool packetSent) {
+  if (packetSent) {
+    rs485LedOnMs = nowMs;
+    setRs485ActivityLed(true);
   }
 
-  lastStatusLedToggleMs = nowMs;
-  setStatusLed(!statusLedOn);
+  if (rs485LedOn &&
+      (nowMs - rs485LedOnMs) >= AppConfig::Rs485ActivityLedPulseMs) {
+    setRs485ActivityLed(false);
+  }
 }
 
 void setup() {
   Serial.begin(115200);
   delay(500);
 
-  pinMode(AppConfig::StatusLedPin, OUTPUT);
-  setStatusLed(false);
+  pinMode(AppConfig::Rs485ActivityLedPin, OUTPUT);
+  setRs485ActivityLed(false);
 
   Serial.println();
   Serial.println("=== CAN_teste_03: CAN + RS485 ===");
@@ -43,8 +46,8 @@ void loop() {
   const uint32_t nowMs = millis();
 
   canApp.loop(nowMs);
-  rs485App.loop(nowMs);
-  updateStatusLed(nowMs);
+  const bool rs485PacketSent = rs485App.loop(nowMs);
+  updateRs485ActivityLed(nowMs, rs485PacketSent);
 
   delay(AppConfig::LoopDelayMs);
 }
