@@ -12,7 +12,7 @@ permanece preservado nas demais branches.
 - Arduino Nano ou placa compativel com ATmega328P
 - MCP2515 com cristal de 8 MHz
 - Transceiver CAN
-- Transceiver RS485 com controle automatico de direcao
+- Transceiver RS485 com pinos DE e /RE para controle de direcao
 - Tres LEDs e tres resistores de aproximadamente 330 ohms
 
 ## Pinagem
@@ -104,7 +104,7 @@ Os bootloaders testados usam o protocolo `arduino` e o dispositivo
 
 Na compilacao validada desta versao:
 
-- Flash: 19.674 de 30.720 bytes (64,0%)
+- Flash: 19.738 de 30.720 bytes (64,3%)
 - RAM: 1.573 de 2.048 bytes (76,8%)
 
 Devido ao limite de RAM do ATmega328P, novas funcionalidades devem evitar
