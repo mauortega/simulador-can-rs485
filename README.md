@@ -13,7 +13,7 @@ permanece preservado nas demais branches.
 - MCP2515 com cristal de 8 MHz
 - Transceiver CAN
 - Transceiver RS485 com controle automatico de direcao
-- Dois LEDs e dois resistores de aproximadamente 330 ohms
+- Tres LEDs e tres resistores de aproximadamente 330 ohms
 
 ## Pinagem
 
@@ -30,9 +30,17 @@ permanece preservado nas demais branches.
 | LED CAN 250 | A1 | Aceso no modo 250 kbit/s |
 | LED CAN 500 | A2 | Aceso no modo 500 kbit/s |
 
-Ligue o anodo de cada LED indicador ao pino correspondente por meio de um
-resistor de aproximadamente 330 ohms. Ligue o catodo ao GND. Os LEDs sao ativos
-em nivel alto e apenas um LED de velocidade permanece aceso por vez.
+### Ligacao dos LEDs
+
+| Indicacao | Ligacao no anodo (+) | Ligacao no catodo (-) |
+|---|---|---|
+| Estado do simulador | A0 -> resistor de 330 ohms -> anodo | Catodo -> GND |
+| CAN 250 kbit/s | A1 -> resistor de 330 ohms -> anodo | Catodo -> GND |
+| CAN 500 kbit/s | A2 -> resistor de 330 ohms -> anodo | Catodo -> GND |
+
+Os LEDs sao ativos em nivel alto. O LED em A0 pisca durante a execucao. Entre
+os LEDs de velocidade, apenas A1 ou A2 permanece aceso: A1 indica 250 kbit/s e
+A2 indica 500 kbit/s.
 
 O barramento CAN deve ter terminacao adequada de 120 ohms nas duas extremidades.
 CAN-H, CAN-L e GND devem ser compartilhados com o equipamento conectado.
