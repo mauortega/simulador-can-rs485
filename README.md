@@ -22,6 +22,7 @@ permanece preservado nas demais branches.
 | MCP2515 INT | D3 | Interrupcao CAN |
 | RS485 TX | D4 | Transmissao somente |
 | RS485 RX | D5 | Reservado pelo `SoftwareSerial` |
+| RS485 DE + /RE | D6 | Controle de direcao do transceiver |
 | MCP2515 CS | D8 | Chip select da unica porta CAN |
 | SPI MOSI | D11 | SPI de hardware |
 | SPI MISO | D12 | SPI de hardware |
@@ -64,10 +65,11 @@ transmite quadros CAN em modo one-shot; ele nao opera em listen-only.
 
 ## RS485
 
-O RS485 transmite em D4 a 19200 baud, a cada 2 segundos. O firmware pressupoe
-um transceiver com controle automatico de direcao. D5 fica reservado como RX,
-mas pode permanecer desconectado quando apenas a transmissao for usada. A cada
-pacote de 29 bytes transmitido, o LED em A0 acende por aproximadamente 120 ms.
+O RS485 transmite em D4 a 19200 baud, a cada 2 segundos. D5 e usado como RX.
+Ligue os terminais `DE` e `/RE` do transceiver entre si e conecte-os ao D6. O
+firmware coloca D6 em nivel alto durante a transmissao e retorna ao nivel baixo
+assim que o pacote termina. A cada pacote de 29 bytes transmitido, o LED em A0
+acende por aproximadamente 120 ms.
 
 ## Compilacao
 
