@@ -7,7 +7,7 @@ struct DebugTxSlot {
   uint32_t lastMs = 0;
 };
 
-static constexpr uint8_t kDebugTxSlotCount = 40;
+static constexpr uint8_t kDebugTxSlotCount = 12;
 DebugTxSlot gDebugTxSlots[kDebugTxSlotCount];
 } // namespace
 
@@ -16,28 +16,87 @@ CanApplication::CanApplication()
       mCanBuses{
           MCP2515Driver(AppConfig::CanBuses[0].csPin,
                         AppConfig::CanBuses[0].name),
-          MCP2515Driver(AppConfig::CanBuses[1].csPin,
-                        AppConfig::CanBuses[1].name),
-          MCP2515Driver(AppConfig::CanBuses[2].csPin,
-                        AppConfig::CanBuses[2].name),
-          MCP2515Driver(AppConfig::CanBuses[3].csPin,
-                        AppConfig::CanBuses[3].name),
       } {}
 
 void CanApplication::begin() {
+  pinMode(AppConfig::Can250LedPin, OUTPUT);
+  pinMode(AppConfig::Can500LedPin, OUTPUT);
+  digitalWrite(AppConfig::Can250LedPin, LOW);
+  digitalWrite(AppConfig::Can500LedPin, LOW);
+
   Serial.println();
-  Serial.println("=== CAN module: Mercedes CAN1 + J1939 CAN2 ===");
-  Serial.printf("SPI SCK=%u MISO=%u MOSI=%u | MCP2515 clock=%lu\n",
-                AppConfig::CanSck, AppConfig::CanMiso, AppConfig::CanMosi,
-                (unsigned long)AppConfig::Mcp2515QuartzHz);
+  Serial.println(F("=== CAN: can250 = J1939 | can500 = Mercedes ==="));
+  Serial.print(F("SPI SCK=13 MISO=12 MOSI=11 | MCP2515 clock="));
+  Serial.println(AppConfig::Mcp2515QuartzHz);
 
   initCanBuses();
+  updateBitrateLeds();
+  pinMode(AppConfig::CanInterruptPin, INPUT_PULLUP);
+  Serial.println(F("Comandos CAN: can250 ou can500 + Enter"));
 }
 
 void CanApplication::loop(uint32_t nowMs) {
+  processSerialCommand();
   pollCanBuses();
   runSimulation(nowMs);
   printStats(nowMs);
+}
+
+void CanApplication::processSerialCommand() {
+  while (Serial.available() > 0) {
+    char received = (char)Serial.read();
+    if (received == '\r' || received == '\n') {
+      if (mSerialCommandLength == 0) {
+        continue;
+      }
+
+      mSerialCommand[mSerialCommandLength] = '\0';
+      if (strcmp(mSerialCommand, "can250") == 0) {
+        setCanBitrate(MCP2515Driver::BitRate::K250);
+      } else if (strcmp(mSerialCommand, "can500") == 0) {
+        setCanBitrate(MCP2515Driver::BitRate::K500);
+      } else {
+        Serial.println(F("Comando invalido. Use can250 ou can500."));
+      }
+      mSerialCommandLength = 0;
+      continue;
+    }
+
+    if (received >= 'A' && received <= 'Z') {
+      received = (char)(received - 'A' + 'a');
+    }
+
+    const bool validCharacter =
+        (received >= 'a' && received <= 'z') ||
+        (received >= '0' && received <= '9');
+    if (validCharacter && mSerialCommandLength < sizeof(mSerialCommand) - 1) {
+      mSerialCommand[mSerialCommandLength++] = received;
+    } else if (received != ' ' && received != '\t') {
+      mSerialCommandLength = 0;
+    }
+  }
+}
+
+void CanApplication::setCanBitrate(MCP2515Driver::BitRate bitrate) {
+  const bool ok = mCanBuses[AppConfig::CanJ1939].setBitrate(bitrate);
+  Serial.print(F("CAN "));
+  Serial.print(static_cast<uint32_t>(bitrate) / 1000UL);
+  Serial.print(F(" kbit/s: "));
+  Serial.print(ok ? F("OK") : F("ERRO"));
+  if (ok) {
+    updateBitrateLeds();
+    Serial.print(F(" | "));
+    Serial.println(bitrate == MCP2515Driver::BitRate::K500 ? F("Mercedes")
+                                                           : F("J1939"));
+  } else {
+    Serial.println();
+  }
+}
+
+void CanApplication::updateBitrateLeds() {
+  const bool is500 = isMercedesMode();
+  digitalWrite(AppConfig::Can250LedPin, is500 ? LOW : HIGH);
+  digitalWrite(AppConfig::Can500LedPin, is500 ? HIGH : LOW);
 }
 
 bool CanApplication::send(uint8_t busIndex, const CanFrame &frame) {
@@ -60,8 +119,8 @@ void CanApplication::initCanBuses() {
     const AppConfig::CanBusConfig &cfg = AppConfig::CanBuses[i];
     pinMode(cfg.csPin, OUTPUT);
     digitalWrite(cfg.csPin, HIGH);
-    Serial.printf("[%s] CS=%u | %s\n", cfg.name, cfg.csPin,
-                  cfg.enabled ? "enabled" : "reserved");
+    Serial.print('['); Serial.print(cfg.name); Serial.print(F("] CS="));
+    Serial.print(cfg.csPin); Serial.println(F(" | enabled"));
 
     if (!cfg.enabled) {
       continue;
@@ -87,17 +146,23 @@ void CanApplication::pollCanBuses() {
 }
 
 void CanApplication::runSimulation(uint32_t nowMs) {
-  mMercedes.sendDue(*this, AppConfig::Can1Mercedes, nowMs);
-  mJ1939Can2.sendDue(*this, AppConfig::Can2J1939, nowMs);
- 
+  if (isMercedesMode()) {
+    mMercedes.sendDue(*this, AppConfig::CanJ1939, nowMs);
+  } else {
+    mJ1939.sendDue(*this, AppConfig::CanJ1939, nowMs);
+  }
+
   if ((nowMs - mLastStateUpdateMs) < AppConfig::StateUpdateMs) {
     return;
   }
 
   mLastStateUpdateMs = nowMs;
-  mMercedes.tick();
-  mJ1939Can2.tick();
- 
+  if (isMercedesMode()) {
+    mMercedes.tick();
+  } else {
+    mJ1939.tick();
+  }
+
   mStateUpdates++;
 }
 
@@ -107,27 +172,25 @@ void CanApplication::printStats(uint32_t nowMs) {
   }
 
   mLastStatsMs = nowMs;
-  const MCP2515Driver::Stats can1Stats = statsFor(AppConfig::Can1Mercedes);
-  const MCP2515Driver::Stats can2Stats = statsFor(AppConfig::Can2J1939);
-  const MercedesSimulator::State &mercedes = mMercedes.state();
-  const J1939Simulator::State &j1939 = mJ1939Can2.state();
+  const MCP2515Driver::Stats canStats = statsFor(AppConfig::CanJ1939);
+  const bool mercedes = isMercedesMode();
+  const float rpm = mercedes ? mMercedes.state().rpm : mJ1939.state().rpm;
+  const float speed = mercedes ? mMercedes.state().speed : mJ1939.state().speed;
 
-  Serial.printf("[CAN1] updates=%lu TX_OK=%lu TX_FAIL=%lu REC=%lu RPM=%.0f Vel=%.0f\n",
-                (unsigned long)mStateUpdates, (unsigned long)can1Stats.txOk,
-                (unsigned long)can1Stats.txFail,
-                (unsigned long)can1Stats.recoveries, mercedes.rpm,
-                mercedes.speed);
-  Serial.printf("[CAN2] updates=%lu TX_OK=%lu TX_FAIL=%lu REC=%lu RPM=%.0f Vel=%.0f\n",
-                (unsigned long)mStateUpdates, (unsigned long)can2Stats.txOk,
-                (unsigned long)can2Stats.txFail,
-                (unsigned long)can2Stats.recoveries, j1939.rpm, j1939.speed);
+  Serial.print(F("[CAN] "));
+  Serial.print(mercedes ? F("MB500") : F("VW250"));
+  Serial.print(F(" updates=")); Serial.print(mStateUpdates);
+  Serial.print(F(" TX_OK=")); Serial.print(canStats.txOk);
+  Serial.print(F(" TX_FAIL=")); Serial.print(canStats.txFail);
+  Serial.print(F(" REC=")); Serial.print(canStats.recoveries);
+  Serial.print(F(" RPM=")); Serial.print(rpm, 0);
+  Serial.print(F(" Vel=")); Serial.println(speed, 0);
 }
 
 void CanApplication::printTxFrame(uint8_t busIndex, const CanFrame &frame,
                                   bool ok) {
   if (!AppConfig::DebugTxFrames ||
-      (busIndex != AppConfig::Can1Mercedes &&
-       busIndex != AppConfig::Can2J1939)) {
+      busIndex != AppConfig::CanJ1939) {
     return;
   }
 
@@ -157,17 +220,24 @@ void CanApplication::printTxFrame(uint8_t busIndex, const CanFrame &frame,
   slot->lastMs = nowMs;
 
   const AppConfig::CanBusConfig &cfg = AppConfig::CanBuses[busIndex];
-  Serial.printf("[TX %s] %s ID=%s%08lX LEN=%u DATA=",
-                cfg.name, ok ? "OK" : "FAIL", frame.extended ? "X" : "S",
-                (unsigned long)frame.id, frame.len);
+  Serial.print(F("[TX ")); Serial.print(cfg.name); Serial.print(F("] "));
+  Serial.print(ok ? F("OK") : F("FAIL")); Serial.print(F(" ID="));
+  Serial.print(frame.extended ? 'X' : 'S'); Serial.print(frame.id, HEX);
+  Serial.print(F(" LEN=")); Serial.print(frame.len); Serial.print(F(" DATA="));
 
   for (uint8_t i = 0; i < frame.len; i++) {
-    Serial.printf("%02X", frame.data[i]);
+    if (frame.data[i] < 0x10) Serial.print('0');
+    Serial.print(frame.data[i], HEX);
     if (i + 1 < frame.len) {
       Serial.print(' ');
     }
   }
   Serial.println();
+}
+
+bool CanApplication::isMercedesMode() const {
+  return mCanBuses[AppConfig::CanJ1939].actualBitrate() ==
+         static_cast<uint32_t>(MCP2515Driver::BitRate::K500);
 }
 
 MCP2515Driver::Stats CanApplication::statsFor(uint8_t busIndex) const {

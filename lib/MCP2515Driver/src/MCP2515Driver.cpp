@@ -23,16 +23,19 @@ bool MCP2515Driver::begin(SPIClass &spi, uint8_t sck, uint8_t miso,
   }
 
   if (!gCanSpiStarted) {
-    mSpi->begin(mSck, mMiso, mMosi);
+    mSpi->begin();
     gCanSpiStarted = true;
   }
 
   const bool ok = configureController();
 
   if (log) {
-    Serial.printf("[%s] begin=%s code=%u | CS=%u | bitrate=%lu | clock=%lu\n",
-                  mName, ok ? "OK" : "FAIL", mStats.lastError, mCsPin,
-                  (unsigned long)actualBitrate(), (unsigned long)mQuartzHz);
+    Serial.print('['); Serial.print(mName); Serial.print(F("] begin="));
+    Serial.print(ok ? F("OK") : F("FAIL")); Serial.print(F(" code="));
+    Serial.print(mStats.lastError); Serial.print(F(" | CS="));
+    Serial.print(mCsPin); Serial.print(F(" | bitrate="));
+    Serial.print(actualBitrate()); Serial.print(F(" | clock="));
+    Serial.println(mQuartzHz);
   }
 
   return ok;
@@ -65,6 +68,16 @@ bool MCP2515Driver::send(uint32_t id, bool extended, const uint8_t *data,
   mStats.lastError = err;
   recover();
   return false;
+}
+
+bool MCP2515Driver::setBitrate(BitRate bitrate) {
+  mBitrate = bitrate;
+  if (mCan == nullptr) {
+    return false;
+  }
+
+  mCan->abortTX();
+  return configureController();
 }
 
 void MCP2515Driver::poll() {

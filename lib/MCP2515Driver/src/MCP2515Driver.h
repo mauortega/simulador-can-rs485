@@ -25,6 +25,7 @@ public:
              BitRate bitrate, uint32_t quartzHz = 8000000UL,
              bool log = true);
   bool send(uint32_t id, bool extended, const uint8_t *data, uint8_t len = 8);
+  bool setBitrate(BitRate bitrate);
   void poll();
   void recover();
 
