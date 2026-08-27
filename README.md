@@ -69,7 +69,7 @@ O RS485 usa a biblioteca `isrSerial`, que transmite e recebe por interrupcoes em
 vez de usar `SoftwareSerial`. Ela esta configurada para D4 como TX e D5 como RX
 a 19200 baud. Ligue os terminais `DE` e `/RE` do transceiver entre si e conecte-os
 ao D6. O firmware coloca D6 em nivel alto durante a transmissao e retorna ao
-nivel baixo assim que o ultimo byte termina. A cada pacote de 29 bytes
+nivel baixo somente apos o ultimo stop bit. A cada pacote de 29 bytes
 transmitido, o LED em A0 acende por aproximadamente 120 ms.
 
 ## Compilacao

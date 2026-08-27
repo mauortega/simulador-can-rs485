@@ -20,9 +20,19 @@ void Rs485Application::begin() {
 
 bool Rs485Application::loop(uint32_t nowMs) {
   if (mTransmitting) {
-    if (!isrSerial.txBusy()) {
+    if (isrSerial.txBusy()) {
+      return false;
+    }
+
+    if (mTxFinishedUs == 0) {
+      mTxFinishedUs = micros();
+      return false;
+    }
+
+    if ((uint32_t)(micros() - mTxFinishedUs) >= DirectionReleaseUs) {
       digitalWrite(DirectionPin, LOW);
       mTransmitting = false;
+      mTxFinishedUs = 0;
     }
     return false;
   }
@@ -41,6 +51,7 @@ bool Rs485Application::loop(uint32_t nowMs) {
   delayMicroseconds(10);
   const size_t bytesWritten = isrSerial.write(kValidatorTestPacket, packetSize);
   mTransmitting = bytesWritten == packetSize;
+  mTxFinishedUs = 0;
   if (!mTransmitting) {
     digitalWrite(DirectionPin, LOW);
   }

@@ -57,7 +57,8 @@ de 330 ohms e ter o catodo ligado ao GND.
   TX em D4 e RX em D5.
 - Pacote fixo de 29 bytes transmitido a cada 2 segundos.
 - Antes do envio, D6 vai para HIGH para habilitar o transmissor.
-- Ao terminar o envio, D6 volta para LOW para habilitar recepcao.
+- Depois que a biblioteca informa o fim da fila, D6 permanece HIGH por mais
+  100 us para completar o ultimo stop bit e so entao volta para LOW.
 - A0 acende por aproximadamente 120 ms apos cada pacote transmitido.
 - O LED A0 indica atividade de transmissao, nao confirmacao do receptor.
 
@@ -71,8 +72,8 @@ pio run
 
 Uso atual:
 
-- Flash: 19.328 de 30.720 bytes (62,9%).
-- RAM: 1.597 de 2.048 bytes (78,0%).
+- Flash: 19.454 de 30.720 bytes (63,3%).
+- RAM: 1.601 de 2.048 bytes (78,2%).
 
 A RAM esta relativamente alta. Evitar buffers grandes e manter textos de log
 em flash usando `F()`.
